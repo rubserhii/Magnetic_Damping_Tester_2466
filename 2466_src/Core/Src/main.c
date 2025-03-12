@@ -55,6 +55,8 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 
 position_state state = INIT; 
+uint32_t dataBuffer[3][250] = {0};
+int16_t motor_pwm = 0; // nicer if a typedef
 
 /* USER CODE END PV */
 
@@ -67,6 +69,8 @@ static void MX_TIM2_Init(void);
 static void MX_USART1_UART_Init(void);
 static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
+
+void send_motorCommand(int16_t pwm);
 
 /* USER CODE END PFP */
 

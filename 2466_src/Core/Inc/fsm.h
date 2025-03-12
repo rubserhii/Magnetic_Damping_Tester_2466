@@ -1,6 +1,8 @@
 #ifndef __FSM_H
 #define __FSM_H
 
+#include "<stdint.h>"
+
 typedef enum {
     INIT,
     PRE_DUT, 
@@ -10,9 +12,8 @@ typedef enum {
   } position_state;
   
 extern position_state state; 
-
-// databuffer
-// pwm
+extern uint32_t dataBuffer[3][250]; // check datatype with imu
+extern int16_t motor_pwm; 
 
 void FSM_INIT(void);
 void FSM_PRE_DUT(void);
