@@ -1,7 +1,7 @@
 #include "sensors.h"
 
 
-uint32_t SENSORS_readAccel(void){
+uint32_t SENSORS_readAccel(UART_HandleTypeDef *huart){
     // IMU serial communications
 }
 

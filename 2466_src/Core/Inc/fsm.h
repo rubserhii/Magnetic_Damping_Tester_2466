@@ -3,6 +3,10 @@
 
 #include "<stdint.h>"
 
+# define ACCEL_DATA_IDX = 0;
+# define LOADCELL_DATA_IDX = 1;
+# define ENCODER_DATA_IDX = 2;
+
 typedef enum {
     INIT,
     PRE_DUT, 

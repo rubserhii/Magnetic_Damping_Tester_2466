@@ -148,11 +148,9 @@ int main(void)
 
     }
 
-    /*
-    READ LOAD CELL
-    READ ACCEL
-    READ ENCODER
-    */
+    dataBuffer[ACCEL_DATA_IDX][0] = SENSORS_readAccel(&huart2);
+    dataBuffer[LOADCELL_DATA_IDX][0] = SENSORS_readLoadCell(&hadc1);
+    dataBuffer[ENCODER_DATA_IDX][0] = SENSORS_readEncoder();
 
     /* USER CODE END WHILE */
 
