@@ -36,6 +36,12 @@
 /* Private define ------------------------------------------------------------*/
 /* USER CODE BEGIN PD */
 
+#define LED_BLINK_PATTERN_LENGTH 8U
+#define LED_NORMAL_BLINK_PATTERN 0b01010101U // Each bit is the on/off status for one interval
+#define LED_FAULT_BLINK_PATTERN  0b00000101U
+
+#define LED_BLINK_INTERVAL 500U // milliseconds
+
 /* USER CODE END PD */
 
 /* Private macro -------------------------------------------------------------*/
@@ -54,9 +60,14 @@ UART_HandleTypeDef huart2;
 
 /* USER CODE BEGIN PV */
 
-position_state state = INIT; 
-uint32_t dataBuffer[3][250] = {0};
+FSM_state state = INIT; 
+volatile uint32_t dataBuffer[3][250] = {0};
 int16_t motor_pwm = 0; // nicer if a typedef
+
+uint32_t accel = 0; // check datatype with imu
+uin32_t loadcell = 0;
+volatile uint32_t encoder_count = 0; // updated independantly in TIM2 encoder mode 
+
 
 /* USER CODE END PV */
 
@@ -71,11 +82,18 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 void send_motorCommand(int16_t pwm);
+void save_data_callback(void);
 
 /* USER CODE END PFP */
 
 /* Private user code ---------------------------------------------------------*/
 /* USER CODE BEGIN 0 */
+
+void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
+{
+  // add an "if htim == &htim1"
+  save_data_callback();
+}
 
 /* USER CODE END 0 */
 
@@ -86,6 +104,12 @@ void send_motorCommand(int16_t pwm);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
+
+  uint32_t current_tick;
+  // First update should be right away
+  uint32_t last_blink_tick = -LED_BLINK_INTERVAL;
+  uint32_t last_update_tick = -UPDATE_INTERVAL;
+  uint32_t led_cycle = 0;
 
   /* USER CODE END 1 */
 
@@ -114,7 +138,11 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
-  DebugIO_Init(&huart1);
+  DebugIO_Init(&huart2); // printf USART2
+  HAL_TIM_Base_Start(&htim1);
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+  // TODO: start TIM3 PWM https://controllerstech.com/pwm-in-stm32/
+
   FSM_INIT();
 
   /* USER CODE END 2 */
@@ -123,34 +151,46 @@ int main(void)
   /* USER CODE BEGIN WHILE */
   while (1)
   {
+
+    current_tick = HAL_GetTick();
     
     switch (state){
 
       case INIT:
-        FSM_INIT();
+        FSM_init();
         break;
       
       case PRE_DUT:
-        FSM_PRE_DUT();
+        FSM_pre_dut();
         break;
       
       case DUT:
-        FSM_DUT();  
+        FSM_dut();  
         break;
       
       case POST_DUT:
-        FSM_POST_DUT();
+        FSM_post_dut();
         break;
       
       case DEINIT:
-        FSM_DEINIT();  
+        FSM_deinit();  
         break;
 
     }
 
-    dataBuffer[ACCEL_DATA_IDX][0] = SENSORS_readAccel(&huart2);
-    dataBuffer[LOADCELL_DATA_IDX][0] = SENSORS_readLoadCell(&hadc1);
-    dataBuffer[ENCODER_DATA_IDX][0] = SENSORS_readEncoder();
+    accel = SENSORS_readAccel(&huart2);
+    loadcell = SENSORS_readLoadell(&hadc1);
+    // encoder read independantly by TIM2 encoder mode
+
+    // blink LED
+    if (current_tick - last_blink_tick >= LED_BLINK_INTERVAL)
+    {
+      uint32_t led_state = 0;
+      led_state = (LED_NORMAL_BLINK_PATTERN >> led_cycle) & 0x1U;
+      led_cycle = (led_cycle + 1U) % LED_BLINK_PATTERN_LENGTH;
+      HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, led_state);
+      last_blink_tick = current_tick;
+    }
 
     /* USER CODE END WHILE */
 
@@ -420,6 +460,7 @@ static void MX_USART2_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
@@ -429,11 +470,31 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
 
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LED_OUT_Pin */
+  GPIO_InitStruct.Pin = LED_OUT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_OUT_GPIO_Port, &GPIO_InitStruct);
+
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
 }
 
 /* USER CODE BEGIN 4 */
+
+static void save_data_callback(void){
+  static uint16_t i = 0;
+
+  dataBuffer[ACCEL_DATA_IDX][i] = accel
+  dataBuffer[LOADCELL_DATA_IDX][i] = loadcell;
+  dataBuffer[ENCODER_DATA_IDX][i] = encoder_count;
+
+  i++;
+}
 
 /* USER CODE END 4 */
 
@@ -448,6 +509,8 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+    HAL_GPIO_TogglePin(LED_OUT_GPIO_Port, LED_OUT_Pin);
+    HAL_Delay(125); // milliseconds
   }
   /* USER CODE END Error_Handler_Debug */
 }

@@ -1,19 +1,19 @@
 #include "fsm.h"
 
 
-void FSM_INIT(void){
+void FSM_init(void){
     // set pwm to zero
     state = PRE_DUT; 
 }
 
-void FSM_PRE_DUT(void){
+void FSM_pre_dut(void){
     // set acceleration PWM
     // if(encoder position = start of DUT){
     //     state = DUT;
     // }
 }
 
-void FSM_DUT(void){
+void FSM_dut(void){
 
     // if(encoder position = end of DUT){
     //     state = POST_DUT;
@@ -21,7 +21,7 @@ void FSM_DUT(void){
 
 }
 
-void FSM_POST_DUT(void){
+void FSM_post_dut(void){
     // set brake PWM
 
     // if(velocity threshold check passes){
@@ -31,6 +31,6 @@ void FSM_POST_DUT(void){
 
 }
 
-void FSM_DEINIT(void){
+void FSM_deinit(void){
     // send data over serial
 }
