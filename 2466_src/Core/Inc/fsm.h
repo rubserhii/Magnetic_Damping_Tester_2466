@@ -1,11 +1,11 @@
 #ifndef __FSM_H
 #define __FSM_H
 
-#include "<stdint.h>"
+#include <stdint.h>
 
-# define ACCEL_DATA_IDX = 0;
-# define LOADCELL_DATA_IDX = 1;
-# define ENCODER_DATA_IDX = 2;
+# define ACCEL_DATA_IDX 0
+# define LOADCELL_DATA_IDX 1
+# define ENCODER_DATA_IDX 2
 
 typedef enum {
     INIT,

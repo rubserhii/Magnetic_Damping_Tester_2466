@@ -24,7 +24,7 @@
 
 #include "debug_io.h"
 #include "fsm.h"
-#include "sensors.h"
+#include "control.h"
 
 /* USER CODE END Includes */
 
@@ -65,9 +65,8 @@ volatile uint32_t dataBuffer[3][250] = {0};
 int16_t motor_pwm = 0; // nicer if a typedef
 
 uint32_t accel = 0; // check datatype with imu
-uin32_t loadcell = 0;
-volatile uint32_t encoder_count = 0; // updated independantly in TIM2 encoder mode 
-
+uint32_t loadcell = 0;
+uint32_t encoder_count = 0;
 
 /* USER CODE END PV */
 
@@ -82,7 +81,7 @@ static void MX_USART2_UART_Init(void);
 /* USER CODE BEGIN PFP */
 
 void send_motorCommand(int16_t pwm);
-void save_data_callback(void);
+static void save_data_callback(void);
 
 /* USER CODE END PFP */
 
@@ -108,7 +107,7 @@ int main(void)
   uint32_t current_tick;
   // First update should be right away
   uint32_t last_blink_tick = -LED_BLINK_INTERVAL;
-  uint32_t last_update_tick = -UPDATE_INTERVAL;
+  uint32_t last_update_tick = -500; // TODO: check this
   uint32_t led_cycle = 0;
 
   /* USER CODE END 1 */
@@ -143,12 +142,13 @@ int main(void)
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
   // TODO: start TIM3 PWM https://controllerstech.com/pwm-in-stm32/
 
-
-  HAL_ADCEx_Calibration_Start(&hadc1, ADC_SINGLE_ENDED);
+  if(HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK){
+    Error_Handler();
+  }
   HAL_Delay(500);
   HAL_ADC_Start(&hadc1);
 
-  FSM_INIT();
+  FSM_init();
 
   /* USER CODE END 2 */
 
@@ -183,9 +183,9 @@ int main(void)
 
     }
 
-    accel = SENSORS_readAccel(&huart2);
-    loadcell = SENSORS_readLoadell(&hadc1);
-    // encoder read independantly by TIM2 encoder mode
+    accel = CONTROL_readAccel(&huart2);
+    loadcell = CONTROL_readLoadCell(&hadc1);
+    encoder_count = CONTROL_readEncoder(TIM2);
 
     // blink LED
     if (current_tick - last_blink_tick >= LED_BLINK_INTERVAL)
@@ -494,7 +494,7 @@ static void MX_GPIO_Init(void)
 static void save_data_callback(void){
   static uint16_t i = 0;
 
-  dataBuffer[ACCEL_DATA_IDX][i] = accel
+  dataBuffer[ACCEL_DATA_IDX][i] = accel;
   dataBuffer[LOADCELL_DATA_IDX][i] = loadcell;
   dataBuffer[ENCODER_DATA_IDX][i] = encoder_count;
 

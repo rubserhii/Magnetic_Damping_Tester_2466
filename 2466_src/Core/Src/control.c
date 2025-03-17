@@ -15,7 +15,7 @@ uint32_t CONTROL_readLoadCell(ADC_HandleTypeDef *hadc){
     return (uint32_t) raw;
 }
 
-uint32_t CONTROL_readEncoder((TIM_TypeDef *)TIMx){
+uint32_t CONTROL_readEncoder(TIM_TypeDef *TIMx){
     return (TIMx->CNT) >> 2; // TODO: test assumption of divide by 4 accounting for quadrature encoder
 }
 
