@@ -13,16 +13,14 @@ typedef enum {
     DUT, 
     POST_DUT, 
     DEINIT
-  } position_state;
+  } FSM_state;
   
-extern position_state state; 
-extern uint32_t dataBuffer[3][250]; // check datatype with imu
-extern int16_t motor_pwm; 
+extern FSM_state state;  
 
-void FSM_INIT(void);
-void FSM_PRE_DUT(void);
-void FSM_DUT(void);
-void FSM_POST_DUT(void);
-void FSM_DEINIT(void);
+void FSM_init(void);
+void FSM_pre_dut(void);
+void FSM_dut(void);
+void FSM_post_dut(void);
+void FSM_deinit(void);
 
 #endif // __FSM_H

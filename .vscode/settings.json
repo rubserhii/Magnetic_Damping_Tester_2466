@@ -1,8 +1,12 @@
 {
     "files.associations": {
         "sensors.h": "c",
+<<<<<<< HEAD
         "main.h": "c",
         "stm32f1xx_hal.h": "c",
         "stm32f1xx.h": "c"
+=======
+        "debug_io.h": "c"
+>>>>>>> 680510cde8051d543851e5d73ede1072e5df563a
     }
 }
