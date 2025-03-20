@@ -3,7 +3,7 @@
 
 void FSM_init(void){
     // set pwm to zero
-    state = PRE_DUT; 
+    state = PRE_DUT;
 }
 
 void FSM_pre_dut(void){

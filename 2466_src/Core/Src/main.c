@@ -64,7 +64,7 @@ FSM_state state = INIT;
 volatile uint32_t dataBuffer[3][250] = {0};
 int16_t motor_pwm = 0; // nicer if a typedef
 
-uint32_t accel = 0; // check datatype with imu
+volatile uint32_t accel = 0; // check datatype with imu
 uint32_t loadcell = 0;
 uint32_t encoder_count = 0;
 
@@ -92,6 +92,11 @@ void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
   // add an "if htim == &htim1"
   save_data_callback();
+}
+
+void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
+{
+    accel = CONTROL_processIMUpacket(huart);
 }
 
 /* USER CODE END 0 */
@@ -137,7 +142,10 @@ int main(void)
   MX_USART2_UART_Init();
   /* USER CODE BEGIN 2 */
 
+  // INITIALIZATION 
+  
   DebugIO_Init(&huart2); // printf USART2
+  
   HAL_TIM_Base_Start(&htim1);
   HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
   // TODO: start TIM3 PWM https://controllerstech.com/pwm-in-stm32/
@@ -145,8 +153,9 @@ int main(void)
   if(HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK){
     Error_Handler();
   }
-  HAL_Delay(500);
   HAL_ADC_Start(&hadc1);
+
+  CONTROL_initIMU(&huart1); // IMU USART1
 
   FSM_init();
 
@@ -183,7 +192,7 @@ int main(void)
 
     }
 
-    accel = CONTROL_readAccel(&huart2);
+    // accel happens in USART2 interrupt at speed of IMU
     loadcell = CONTROL_readLoadCell(&hadc1);
     encoder_count = CONTROL_readEncoder(TIM2);
 
@@ -465,6 +474,7 @@ static void MX_USART2_UART_Init(void)
   */
 static void MX_GPIO_Init(void)
 {
+  GPIO_InitTypeDef GPIO_InitStruct = {0};
 /* USER CODE BEGIN MX_GPIO_Init_1 */
 /* USER CODE END MX_GPIO_Init_1 */
 
@@ -473,6 +483,26 @@ static void MX_GPIO_Init(void)
   __HAL_RCC_GPIOD_CLK_ENABLE();
   __HAL_RCC_GPIOA_CLK_ENABLE();
   __HAL_RCC_GPIOB_CLK_ENABLE();
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin Output Level */
+  HAL_GPIO_WritePin(IMU_RST_GPIO_Port, IMU_RST_Pin, GPIO_PIN_RESET);
+
+  /*Configure GPIO pin : LED_OUT_Pin */
+  GPIO_InitStruct.Pin = LED_OUT_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(LED_OUT_GPIO_Port, &GPIO_InitStruct);
+
+  /*Configure GPIO pin : IMU_RST_Pin */
+  GPIO_InitStruct.Pin = IMU_RST_Pin;
+  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
+  GPIO_InitStruct.Pull = GPIO_NOPULL;
+  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
+  HAL_GPIO_Init(IMU_RST_GPIO_Port, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
