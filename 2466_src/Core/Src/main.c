@@ -25,6 +25,7 @@
 #include "debug_io.h"
 #include "fsm.h"
 #include "control.h"
+#include <stdio.h>
 
 /* USER CODE END Includes */
 
@@ -112,7 +113,6 @@ int main(void)
   uint32_t current_tick;
   // First update should be right away
   uint32_t last_blink_tick = -LED_BLINK_INTERVAL;
-  uint32_t last_update_tick = -500; // TODO: check this
   uint32_t led_cycle = 0;
 
   /* USER CODE END 1 */
@@ -167,7 +167,7 @@ int main(void)
   {
 
     current_tick = HAL_GetTick();
-    
+
     switch (state){
 
       case INIT:
@@ -533,6 +533,7 @@ void Error_Handler(void)
   __disable_irq();
   while (1)
   {
+    printf("Error Handler\r\n");
     HAL_GPIO_TogglePin(LED_OUT_GPIO_Port, LED_OUT_Pin);
     HAL_Delay(125); // milliseconds
   }

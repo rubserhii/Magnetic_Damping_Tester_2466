@@ -1,5 +1,6 @@
 #include "control.h"
 #include "main.h"
+#include <stdio.h>
 
 uint8_t imu_uart_buffer[IMU_DATA_PACKET_SIZE];
 
@@ -31,8 +32,8 @@ uint32_t CONTROL_processIMUpacket(UART_HandleTypeDef *huart){
 
 // returns associated raw bits
 uint32_t CONTROL_readLoadCell(ADC_HandleTypeDef *hadc){
-    HAL_StatusTypeDef status = HAL_ADC_PollForConversion(hadc, 100); // timeout (ms)
-    uint16_t raw = HAL_ADC_GetValue(hadc);
+    HAL_StatusTypeDef status = HAL_ADC_PollForConversion(hadc, 100); // timeout (ms)    
+    uint16_t raw = HAL_ADC_GetValue(hadc);    
     if (raw >= ADC_RESOLUTION) raw = ADC_RESOLUTION;
 
     return (uint32_t) raw;
