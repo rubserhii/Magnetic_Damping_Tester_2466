@@ -24,15 +24,15 @@ void CONTROL_initIMU(UART_HandleTypeDef *huart){
 // returns single acceleration measurement
 uint32_t CONTROL_processIMUpacket(UART_HandleTypeDef *huart){
     
-    uint16_t accel = ((uint16_t)imu_uart_buffer[IMU_ACCEL_MSB]) << 8 || (uint16_t)imu_uart_buffer[IMU_ACCEL_LSB]; 
-    
+    uint16_t accel = (((uint16_t)imu_uart_buffer[IMU_ACCEL_MSB]) << 8) | (uint16_t)imu_uart_buffer[IMU_ACCEL_LSB]; 
     HAL_UART_Receive_IT(huart, imu_uart_buffer, IMU_DATA_PACKET_SIZE); // set trigger for interrupt after next packet rx'd
+    
     return (uint32_t)accel;
 }
 
 // returns associated raw bits
 uint32_t CONTROL_readLoadCell(ADC_HandleTypeDef *hadc){
-    HAL_StatusTypeDef status = HAL_ADC_PollForConversion(hadc, 100); // timeout (ms)    
+    HAL_ADC_PollForConversion(hadc, 100); // timeout (ms)    
     uint16_t raw = HAL_ADC_GetValue(hadc);    
     if (raw >= ADC_RESOLUTION) raw = ADC_RESOLUTION;
 
@@ -43,6 +43,27 @@ uint32_t CONTROL_readEncoder(TIM_TypeDef *TIMx){
     return (TIMx->CNT) >> 2; // TODO: test assumption of divide by 4 accounting for quadrature encoder
 }
 
-void CONTROL_sendMotorCmd(motor_cmd motor_cmd){
-    // TODO
+void CONTROL_initMotor(TIM_TypeDef *TIMx){
+    TIMx->CCR1 = 100;
+}
+
+void CONTROL_sendMotorCmd(TIM_TypeDef *TIMx, motor_cmd motor_cmd){
+    switch (motor_cmd){
+        case FORWARD:
+            HAL_GPIO_WritePin(MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin, FORWARD); // A high, B low
+            TIMx->CCR1 = 100; // percent duty cycle
+            break;
+
+        case NEUTRAL:
+            HAL_GPIO_WritePin(MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin, 0); // same as FWD, as defined in enum
+            TIMx->CCR1 = 0;    
+            break;
+
+        case REVERSE:
+            HAL_GPIO_WritePin(MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin, REVERSE); // A low, B high
+            TIMx->CCR1 = 100;
+
+    }
+
+    
 }
