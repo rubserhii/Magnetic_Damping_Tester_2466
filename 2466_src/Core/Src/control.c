@@ -4,6 +4,7 @@
 
 uint8_t imu_uart_buffer[IMU_DATA_PACKET_SIZE];
 
+
 void CONTROL_initIMU(UART_HandleTypeDef *huart){
 
     uint8_t temp_imu_init[IMU_STARTUP_PACKET_SIZE];
@@ -39,31 +40,25 @@ uint32_t CONTROL_readLoadCell(ADC_HandleTypeDef *hadc){
     return (uint32_t) raw;
 }
 
-uint32_t CONTROL_readEncoder(TIM_TypeDef *TIMx){
-    return (TIMx->CNT) >> 2; // TODO: test assumption of divide by 4 accounting for quadrature encoder
+uint32_t CONTROL_readEncoder(void){
+    return (TIM2->CNT) >> 1; // divide by 2
 }
 
-void CONTROL_initMotor(TIM_TypeDef *TIMx){
-    TIMx->CCR1 = 100;
-}
+void CONTROL_sendMotorCmd(motor_dir direction, uint8_t duty_cycle){
+    
+    TIM3->CCR1 = (uint32_t)((duty_cycle * (TIM3->ARR + 1)) / 100); 
 
-void CONTROL_sendMotorCmd(TIM_TypeDef *TIMx, motor_cmd motor_cmd){
-    switch (motor_cmd){
+    switch (direction){
         case FORWARD:
             HAL_GPIO_WritePin(MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin, FORWARD); // A high, B low
-            TIMx->CCR1 = 100; // percent duty cycle
             break;
 
         case NEUTRAL:
-            HAL_GPIO_WritePin(MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin, 0); // same as FWD, as defined in enum
-            TIMx->CCR1 = 0;    
+            TIM3->CCR1 = 0;    
             break;
 
         case REVERSE:
             HAL_GPIO_WritePin(MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin, REVERSE); // A low, B high
-            TIMx->CCR1 = 100;
-
-    }
-
-    
+            break;
+        }
 }

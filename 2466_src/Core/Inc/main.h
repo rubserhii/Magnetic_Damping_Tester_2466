@@ -63,6 +63,8 @@ void Error_Handler(void);
 #define LED_OUT_GPIO_Port GPIOC
 #define MOTOR_DIR_Pin GPIO_PIN_5
 #define MOTOR_DIR_GPIO_Port GPIOA
+#define TEST_TIMING_Pin GPIO_PIN_3
+#define TEST_TIMING_GPIO_Port GPIOB
 #define IMU_RST_Pin GPIO_PIN_9
 #define IMU_RST_GPIO_Port GPIOB
 

@@ -25,6 +25,7 @@
 #include "debug_io.h"
 #include "fsm.h"
 #include "control.h"
+
 #include <stdio.h>
 
 /* USER CODE END Includes */
@@ -42,6 +43,9 @@
 #define LED_FAULT_BLINK_PATTERN  0b00000101U
 
 #define LED_BLINK_INTERVAL 500U // milliseconds
+
+#define NUM_DATA_FIELDS 3
+#define NUM_DATA_MEASUREMENTS 1000
 
 /* USER CODE END PD */
 
@@ -63,11 +67,11 @@ UART_HandleTypeDef huart2;
 /* USER CODE BEGIN PV */
 
 FSM_state state = INIT; 
-volatile uint32_t dataBuffer[3][250] = {0};
+volatile uint32_t dataBuffer[NUM_DATA_FIELDS][NUM_DATA_MEASUREMENTS] = {0};
 
 volatile uint32_t accel = 0;
 uint32_t loadcell = 0;
-uint32_t encoder_count = 0;
+volatile uint32_t encoder_count = 0;
 
 /* USER CODE END PV */
 
@@ -91,8 +95,10 @@ static void save_data_callback(void);
 
 void HAL_TIM_PeriodElapsedCallback(TIM_HandleTypeDef* htim)
 {
-  // add an "if htim == &htim1"
-  save_data_callback();
+  if (htim == &htim1){
+    save_data_callback();
+  }
+
 }
 
 void HAL_UART_RxCpltCallback(UART_HandleTypeDef *huart)
@@ -147,20 +153,25 @@ int main(void)
   
   DebugIO_Init(&huart2); // printf USART2
 
-  CONTROL_sendMotorCmd(TIM3, NEUTRAL);
-  
-  HAL_TIM_Base_Start(&htim1);
-  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
-  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  printf("=====Begin Init=====\r\n");
 
+  HAL_TIM_PWM_Start(&htim3, TIM_CHANNEL_1);
+  CONTROL_sendMotorCmd(NEUTRAL, 0);
+  
   if(HAL_ADCEx_Calibration_Start(&hadc1) != HAL_OK){
     Error_Handler();
   }
   HAL_ADC_Start(&hadc1);
-
+  
+  HAL_TIM_Encoder_Start(&htim2, TIM_CHANNEL_ALL);
+  
   CONTROL_initIMU(&huart1); // IMU USART1
 
+  HAL_TIM_Base_Start_IT(&htim1);
   FSM_init();
+
+  printf("=====Begin FSM=====\r\n");
+
 
   /* USER CODE END 2 */
 
@@ -190,15 +201,18 @@ int main(void)
         break;
       
       case DEINIT:
-        FSM_deinit();  
+        // blocking data transmission
+        // printf("=====Begin data transmission=====\r\n");
+        // HAL_UART_Transmit(&huart2, (uint8_t*)dataBuffer, NUM_DATA_FIELDS*NUM_DATA_MEASUREMENTS*4, 3000);
+        // printf("=====End data transmission=====\r\n");
         break;
 
     }
 
     // accel happens in USART1 interrupt at speed of IMU
+    // encoder captured by TIM3 automatically, read in TIM1 interrupt
     loadcell = CONTROL_readLoadCell(&hadc1);
-    encoder_count = CONTROL_readEncoder(TIM2);
-    
+
     // blink LED
     if (current_tick - last_blink_tick >= LED_BLINK_INTERVAL)
     {
@@ -328,9 +342,9 @@ static void MX_TIM1_Init(void)
 
   /* USER CODE END TIM1_Init 1 */
   htim1.Instance = TIM1;
-  htim1.Init.Prescaler = 0;
+  htim1.Init.Prescaler = 72-1;
   htim1.Init.CounterMode = TIM_COUNTERMODE_UP;
-  htim1.Init.Period = 65535;
+  htim1.Init.Period = 400-1;
   htim1.Init.ClockDivision = TIM_CLOCKDIVISION_DIV1;
   htim1.Init.RepetitionCounter = 0;
   htim1.Init.AutoReloadPreload = TIM_AUTORELOAD_PRELOAD_DISABLE;
@@ -543,7 +557,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(IMU_RST_GPIO_Port, IMU_RST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOB, TEST_TIMING_Pin|IMU_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_OUT_Pin */
   GPIO_InitStruct.Pin = LED_OUT_Pin;
@@ -559,12 +573,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(MOTOR_DIR_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : IMU_RST_Pin */
-  GPIO_InitStruct.Pin = IMU_RST_Pin;
+  /*Configure GPIO pins : TEST_TIMING_Pin IMU_RST_Pin */
+  GPIO_InitStruct.Pin = TEST_TIMING_Pin|IMU_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(IMU_RST_GPIO_Port, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
@@ -572,14 +586,20 @@ static void MX_GPIO_Init(void)
 
 /* USER CODE BEGIN 4 */
 
+// Called at 2.5kHz in TIM1 ISR
 static void save_data_callback(void){
   static uint16_t i = 0;
 
-  dataBuffer[ACCEL_DATA_IDX][i] = accel;
-  dataBuffer[LOADCELL_DATA_IDX][i] = loadcell;
-  dataBuffer[ENCODER_DATA_IDX][i] = encoder_count;
+  if(state == DUT){
+    dataBuffer[ACCEL_DATA_IDX][i] = accel;
+    dataBuffer[LOADCELL_DATA_IDX][i] = loadcell;
+    dataBuffer[ENCODER_DATA_IDX][i] = CONTROL_readEncoder();
+    
+    i++;
+  }
 
-  i++;
+  encoder_count = CONTROL_readEncoder();
+
 }
 
 /* USER CODE END 4 */

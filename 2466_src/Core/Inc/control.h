@@ -12,16 +12,18 @@
 # define ADC_RESOLUTION 4095
 
 typedef enum{
-    FORWARD, 
-    REVERSE,
+    REVERSE, 
+    FORWARD,
     NEUTRAL
-} motor_cmd;
+} motor_dir;
 
 void CONTROL_initIMU(UART_HandleTypeDef *huart);
 uint32_t CONTROL_processIMUpacket(UART_HandleTypeDef *huart);
+
 uint32_t CONTROL_readLoadCell(ADC_HandleTypeDef *hadc);
-uint32_t CONTROL_readEncoder(TIM_TypeDef *TIMx);
-void CONTROL_sendMotorCmd(TIM_TypeDef *TIMx, motor_cmd motor_cmd);
-void CONTROL_initMotor(TIM_TypeDef *TIMx);
+
+uint32_t CONTROL_readEncoder(void);
+
+void CONTROL_sendMotorCmd(motor_dir direction, uint8_t duty_cycle);
 
 #endif // __CONTROL_H
