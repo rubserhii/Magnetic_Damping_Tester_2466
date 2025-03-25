@@ -554,10 +554,7 @@ static void MX_GPIO_Init(void)
   HAL_GPIO_WritePin(LED_OUT_GPIO_Port, LED_OUT_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(MOTOR_DIR_GPIO_Port, MOTOR_DIR_Pin, GPIO_PIN_RESET);
-
-  /*Configure GPIO pin Output Level */
-  HAL_GPIO_WritePin(GPIOB, TEST_TIMING_Pin|IMU_RST_Pin, GPIO_PIN_RESET);
+  HAL_GPIO_WritePin(GPIOA, MOTOR_DIR_Pin|IMU_RST_Pin, GPIO_PIN_RESET);
 
   /*Configure GPIO pin : LED_OUT_Pin */
   GPIO_InitStruct.Pin = LED_OUT_Pin;
@@ -566,19 +563,12 @@ static void MX_GPIO_Init(void)
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
   HAL_GPIO_Init(LED_OUT_GPIO_Port, &GPIO_InitStruct);
 
-  /*Configure GPIO pin : MOTOR_DIR_Pin */
-  GPIO_InitStruct.Pin = MOTOR_DIR_Pin;
+  /*Configure GPIO pins : MOTOR_DIR_Pin IMU_RST_Pin */
+  GPIO_InitStruct.Pin = MOTOR_DIR_Pin|IMU_RST_Pin;
   GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
   GPIO_InitStruct.Pull = GPIO_NOPULL;
   GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(MOTOR_DIR_GPIO_Port, &GPIO_InitStruct);
-
-  /*Configure GPIO pins : TEST_TIMING_Pin IMU_RST_Pin */
-  GPIO_InitStruct.Pin = TEST_TIMING_Pin|IMU_RST_Pin;
-  GPIO_InitStruct.Mode = GPIO_MODE_OUTPUT_PP;
-  GPIO_InitStruct.Pull = GPIO_NOPULL;
-  GPIO_InitStruct.Speed = GPIO_SPEED_FREQ_LOW;
-  HAL_GPIO_Init(GPIOB, &GPIO_InitStruct);
+  HAL_GPIO_Init(GPIOA, &GPIO_InitStruct);
 
 /* USER CODE BEGIN MX_GPIO_Init_2 */
 /* USER CODE END MX_GPIO_Init_2 */
