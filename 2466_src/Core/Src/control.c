@@ -17,8 +17,10 @@ void CONTROL_initIMU(UART_HandleTypeDef *huart){
 
     if (HAL_UART_Receive(huart, temp_imu_init, IMU_STARTUP_PACKET_SIZE, 500) != HAL_OK){
         printf("IMU Init Failed!\r\n");
-    } // blocking receive startup bytes (p43) from IMU, TODO: verify this packet size
+    } // blocking receive startup bytes (p43) from IMU
     
+    printf("IMU Init Success\r\n");
+
     HAL_UART_Receive_IT(huart, imu_uart_buffer, IMU_DATA_PACKET_SIZE); // initial recieve to trigger interrupt on packet reception
 }
 
